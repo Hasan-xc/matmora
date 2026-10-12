@@ -1,4 +1,10 @@
     // --- 5. Incremental Realtime Handler ---
+    var jarsSyncTimer = null;
+    function scheduleJarsSync() {
+      clearTimeout(jarsSyncTimer);
+      jarsSyncTimer = setTimeout(function() { syncFromSupabase(true); }, 600);
+    }
+
     function setupRealtimeSubscriptions() {
       if (!supabaseClient || realtimeChannel) return;
       try {
@@ -7,7 +13,7 @@
             handleKidRealtimeDelta(payload);
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'jars' }, function() {
-            syncFromSupabase(true);
+            scheduleJarsSync();
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, function(payload) {
             handleTransactionRealtimeDelta(payload);

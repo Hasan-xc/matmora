@@ -387,6 +387,7 @@
     }
 
     window.closeCurrentJar = function() {
+      if (!state.isAdmin) return;
       var kidId = state.activeKidId;
       if (!kidId) return;
       var jar = getActiveJar(kidId);
@@ -420,6 +421,7 @@
     };
 
     window.activateClosedJar = function(jarId) {
+      if (!state.isAdmin) return;
       var kidId = state.activeKidId;
       if (!kidId) return;
       var target = (state.jars || []).find(function(j) { return String(j.id) === String(jarId) && j.status === 'closed'; });
@@ -451,6 +453,7 @@
     };
 
     window.deleteClosedJar = function(jarId) {
+      if (!state.isAdmin) return;
       var jar = (state.jars || []).find(function(j) { return String(j.id) === String(jarId) && j.status === 'closed'; });
       if (!jar) return;
       if (calculateJarBalance(jar.id) !== 0) {

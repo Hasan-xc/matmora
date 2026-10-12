@@ -146,6 +146,7 @@
 
     window.openChildView = function(kidId) {
       state.activeKidId = kidId;
+      setPhysicsRunning(true);
       document.getElementById('shelfView').style.display = 'none';
       document.getElementById('childView').style.display = 'block';
       updateAdminUI();
@@ -154,6 +155,7 @@
 
     window.goToShelf = function() {
       state.activeKidId = null;
+      setPhysicsRunning(false);
       var appBody = document.getElementById('appBody');
       if (appBody) appBody.className = 'p-3 md:p-6 theme-shelf';
       document.getElementById('childView').style.display = 'none';
@@ -191,18 +193,25 @@
       }
       box.innerHTML = closed.map(function(j) {
         var bal = calculateJarBalance(j.id);
-        var canDelete = bal === 0;
+        var isAdmin = !!state.isAdmin;
+        var openTag = isAdmin
+          ? '<button type="button" onclick="activateClosedJar(\'' + j.id + '\')" title="استرجاع هذه المطمورة" class="flex flex-col items-center cursor-pointer active:scale-95 transition">'
+          : '<div class="flex flex-col items-center">';
+        var closeTag = isAdmin ? '</button>' : '</div>';
+        var delBtn = (isAdmin && bal === 0)
+          ? '<button type="button" onclick="deleteClosedJar(\'' + j.id + '\')" class="text-[10px] text-rose-100 bg-rose-500/40 hover:bg-rose-500/60 px-2 py-0.5 rounded-lg font-black cursor-pointer">🗑️ مسح</button>'
+          : '';
         return '' +
           '<div class="flex flex-col items-center gap-1">' +
-            '<button type="button" onclick="activateClosedJar(\'' + j.id + '\')" title="استرجاع هذه المطمورة" class="flex flex-col items-center cursor-pointer active:scale-95 transition">' +
+            openTag +
               '<div class="w-12 h-2 rounded-t-md bg-amber-800 border border-amber-500"></div>' +
               '<div class="w-14 h-1.5 bg-white/20 border-x border-white/40"></div>' +
               '<div class="relative w-24 h-28 bg-white/15 border-2 border-white/45 overflow-hidden" style="border-radius: 24px 24px 32px 32px;">' +
                 '<canvas data-jar-id="' + j.id + '" width="192" height="224" class="absolute inset-0 w-full h-full"></canvas>' +
               '</div>' +
-            '</button>' +
+            closeTag +
             '<span class="text-[10px] text-white/90 font-bold">' + j.name + ' · ' + bal.toLocaleString() + ' ₺</span>' +
-            (canDelete ? '<button type="button" onclick="deleteClosedJar(\'' + j.id + '\')" class="text-[10px] text-rose-100 bg-rose-500/40 hover:bg-rose-500/60 px-2 py-0.5 rounded-lg font-black cursor-pointer">🗑️ مسح</button>' : '') +
+            delBtn +
           '</div>';
       }).join('');
 

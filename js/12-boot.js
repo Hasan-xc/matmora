@@ -5,6 +5,11 @@
       renderShelfView();
       updateAdminUI();
       initMatterPhysics();
+      if (!state.activeKidId) setPhysicsRunning(false);
+      document.addEventListener('visibilitychange', function() {
+        if (document.hidden) setPhysicsRunning(false);
+        else if (state.activeKidId) setPhysicsRunning(true);
+      });
 
       testSupabaseConnection(false);
     });

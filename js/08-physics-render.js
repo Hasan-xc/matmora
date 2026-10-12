@@ -54,6 +54,20 @@
     }
 
     var engine = null, render = null, runner = null;
+    var physicsActive = true;
+
+    function setPhysicsRunning(on) {
+      if (!engine || !render || !runner || !window.Matter) return;
+      if (on === physicsActive) return;
+      physicsActive = on;
+      if (on) {
+        window.Matter.Render.run(render);
+        window.Matter.Runner.run(runner, engine);
+      } else {
+        window.Matter.Runner.stop(runner);
+        window.Matter.Render.stop(render);
+      }
+    }
     var isOrganizedMode = false;
     var swirlInterval = null;
 

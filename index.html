@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kids Piggy - مطمورة الأطفال الذكية 🏺✨</title>
   
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
   <!-- Google Fonts: Cairo -->
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
   <!-- Supabase JS Client CDN (With Fallbacks) -->
@@ -23,6 +21,8 @@
 
   <!-- Main stylesheet (extracted from original <style>) -->
   <link rel="stylesheet" href="css/style.css">
+  <!-- Tailwind CSS (prebuilt, v3.4.17) -->
+  <link rel="stylesheet" href="css/tailwind.css">
 
 <body class="theme-shelf p-3 md:p-6" id="appBody">
 
@@ -270,7 +270,7 @@
 
       <!-- Close Jar + Closed Jars -->
       <div class="flex flex-col items-center gap-3">
-        <button type="button" id="closeJarBtn" onclick="closeCurrentJar()" class="bg-white/20 hover:bg-white/30 border border-white/30 text-white font-black py-2 px-5 rounded-2xl text-xs backdrop-blur-md shadow-md transition cursor-pointer active:scale-95">
+        <button type="button" id="closeJarBtn" style="display: none;" onclick="closeCurrentJar()" class="bg-white/20 hover:bg-white/30 border border-white/30 text-white font-black py-2 px-5 rounded-2xl text-xs backdrop-blur-md shadow-md transition cursor-pointer active:scale-95">
           🫙 إغلاق الجرة
         </button>
         <div id="closedJarsRow" class="flex flex-wrap justify-center gap-3"></div>

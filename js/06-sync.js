@@ -48,9 +48,8 @@
 
     async function syncFromSupabase(silent) {
       try {
-        var remoteKids = await dbService.fetchKids();
-        var remoteTx = await dbService.fetchTransactions();
-        var remoteJars = await dbService.fetchJars();
+        var results = await Promise.all([dbService.fetchKids(), dbService.fetchTransactions(), dbService.fetchJars()]);
+        var remoteKids = results[0], remoteTx = results[1], remoteJars = results[2];
 
         state.kids = remoteKids || [];
         state.transactions = remoteTx || [];

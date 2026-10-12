@@ -214,6 +214,9 @@
       var burgerContainerChild = document.getElementById('adminBurgerContainerChild');
       var adminShelf = document.getElementById('adminDepositShelf');
       var adminActions = document.getElementById('adminActionButtons');
+      var closeJarBtn = document.getElementById('closeJarBtn');
+      if (closeJarBtn) closeJarBtn.style.display = state.isAdmin ? '' : 'none';
+      if (state.activeKidId && typeof renderClosedJars === 'function') renderClosedJars(state.activeKidId);
 
       if (state.isAdmin) {
         if (guestBtn) guestBtn.style.display = 'none';
