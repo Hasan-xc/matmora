@@ -96,6 +96,13 @@
         return Array.isArray(list) ? list[0] : list;
       },
 
+      deleteJar: async function(id) {
+        try {
+          await directRestFetch('/transactions?jar_id=eq.' + encodeURIComponent(id), { method: 'DELETE' });
+        } catch(e) {}
+        return await directRestFetch('/jars?id=eq.' + encodeURIComponent(id), { method: 'DELETE' });
+      },
+
       insertKid: async function(kid) {
         if (supabaseClient) {
           try {

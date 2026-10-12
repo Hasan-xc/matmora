@@ -162,6 +162,25 @@
       updateAdminUI();
     };
 
+    function drawMiniJar(canvas, currencies) {
+      var ctx = canvas.getContext('2d');
+      var W = canvas.width, H = canvas.height;
+      ctx.clearRect(0, 0, W, H);
+      var s = (W / 300) * 1.05;
+      function rnd(n) { var x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+      currencies.forEach(function(denom, i) {
+        var x = W * (0.2 + 0.6 * rnd(i * 3));
+        var y = H * (0.5 + 0.42 * rnd(i * 3 + 1));
+        var angle = (rnd(i * 3 + 2) - 0.5) * 0.8;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+        ctx.scale(s, s);
+        drawBanknoteCanvas(ctx, denom);
+        ctx.restore();
+      });
+    }
+
     function renderClosedJars(kidId) {
       var box = document.getElementById('closedJarsRow');
       if (!box) return;
@@ -171,13 +190,26 @@
         return;
       }
       box.innerHTML = closed.map(function(j) {
-        var b = calculateJarBalance(j.id);
+        var bal = calculateJarBalance(j.id);
+        var canDelete = bal === 0;
         return '' +
           '<div class="flex flex-col items-center gap-1">' +
-            '<div class="glass-jar-wrapper w-16 h-20 flex items-end justify-center pb-1.5 text-[11px] font-black text-white">' + b.toLocaleString() + ' ₺</div>' +
-            '<span class="text-[9px] text-white/80 font-bold">' + j.name + '</span>' +
+            '<button type="button" onclick="activateClosedJar(\'' + j.id + '\')" title="استرجاع هذه المطمورة" class="flex flex-col items-center cursor-pointer active:scale-95 transition">' +
+              '<div class="w-12 h-2 rounded-t-md bg-amber-800 border border-amber-500"></div>' +
+              '<div class="w-14 h-1.5 bg-white/20 border-x border-white/40"></div>' +
+              '<div class="relative w-24 h-28 bg-white/15 border-2 border-white/45 overflow-hidden" style="border-radius: 24px 24px 32px 32px;">' +
+                '<canvas data-jar-id="' + j.id + '" width="192" height="224" class="absolute inset-0 w-full h-full"></canvas>' +
+              '</div>' +
+            '</button>' +
+            '<span class="text-[10px] text-white/90 font-bold">' + j.name + ' · ' + bal.toLocaleString() + ' ₺</span>' +
+            (canDelete ? '<button type="button" onclick="deleteClosedJar(\'' + j.id + '\')" class="text-[10px] text-rose-100 bg-rose-500/40 hover:bg-rose-500/60 px-2 py-0.5 rounded-lg font-black cursor-pointer">🗑️ مسح</button>' : '') +
           '</div>';
       }).join('');
+
+      closed.forEach(function(j) {
+        var c = box.querySelector('canvas[data-jar-id="' + j.id + '"]');
+        if (c) drawMiniJar(c, getJarCurrencies(j.id));
+      });
     }
 
     function renderTransactionsList() {

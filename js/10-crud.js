@@ -367,36 +367,12 @@
       })();
     };
 
-    // H. Close Jar: puts the current jar aside (filled) and opens an empty one
-    window.closeCurrentJar = function() {
-      var kidId = state.activeKidId;
-      if (!kidId) return;
-      var jar = getActiveJar(kidId);
-      if (!jar) return;
-
-      var bal = calculateJarBalance(jar.id);
-      if (!confirm('إغلاق هذه المطمورة ووضعها جانباً (الرصيد: ' + bal + ' ₺)؟ ستفتح مطمورة جديدة فارغة.')) return;
-
-      var nowIso = new Date().toISOString();
-      var count = (state.jars || []).filter(function(j) { return String(j.kid_id) === String(kidId); }).length;
-      var newJar = {
-        id: generateUUID(),
-        kid_id: kidId,
-        name: 'مطمورة ' + (count + 1),
-        status: 'active',
-        created_at: nowIso,
-        closed_at: null
-      };
-
-      jar.status = 'closed';
-      jar.closed_at = nowIso;
-      state.jars.push(newJar);
-      saveToCache();
-
+    // H. Jars: close current, restore a closed one (swap), delete an empty closed one
+    function runJarSwapAnimation(done) {
       var wrap = document.getElementById('activeJarWrapper');
       if (wrap) wrap.classList.add('jar-slide-down');
-
       setTimeout(function() {
+        done();
         clearJarPhysics();
         refreshActiveChildView(false);
         if (wrap) {
@@ -408,7 +384,27 @@
           setTimeout(function() { wrap.classList.remove('jar-fade-in'); }, 700);
         }
       }, 650);
+    }
 
+    window.closeCurrentJar = function() {
+      var kidId = state.activeKidId;
+      if (!kidId) return;
+      var jar = getActiveJar(kidId);
+      if (!jar) return;
+
+      var bal = calculateJarBalance(jar.id);
+      if (!confirm('إغلاق هذه المطمورة ووضعها جانباً (الرصيد: ' + bal + ' ₺)؟ ستفتح مطمورة جديدة فارغة.')) return;
+
+      var nowIso = new Date().toISOString();
+      var count = (state.jars || []).filter(function(j) { return String(j.kid_id) === String(kidId); }).length;
+      var newJar = { id: generateUUID(), kid_id: kidId, name: 'مطمورة ' + (count + 1), status: 'active', created_at: nowIso, closed_at: null };
+
+      runJarSwapAnimation(function() {
+        jar.status = 'closed';
+        jar.closed_at = nowIso;
+        state.jars.push(newJar);
+        saveToCache();
+      });
       window.showStatusToast('تم إغلاق المطمورة ووضعها جانباً 🫙');
 
       (async function() {
@@ -418,6 +414,63 @@
         } catch (err) {
           console.error('❌ Close jar sync failed:', err);
           window.showStatusToast('فشل حفظ إغلاق المطمورة في السحابة!', true);
+          syncFromSupabase(true);
+        }
+      })();
+    };
+
+    window.activateClosedJar = function(jarId) {
+      var kidId = state.activeKidId;
+      if (!kidId) return;
+      var target = (state.jars || []).find(function(j) { return String(j.id) === String(jarId) && j.status === 'closed'; });
+      if (!target) return;
+      var current = getActiveJar(kidId);
+      var nowIso = new Date().toISOString();
+
+      runJarSwapAnimation(function() {
+        if (current) {
+          current.status = 'closed';
+          current.closed_at = nowIso;
+        }
+        target.status = 'active';
+        target.closed_at = null;
+        saveToCache();
+      });
+      window.showStatusToast('تم استرجاع ' + target.name + ' 🫙');
+
+      (async function() {
+        try {
+          if (current) await dbService.updateJar(current.id, { status: 'closed', closed_at: nowIso });
+          await dbService.updateJar(target.id, { status: 'active', closed_at: null });
+        } catch (err) {
+          console.error('❌ Restore jar sync failed:', err);
+          window.showStatusToast('فشل حفظ استرجاع المطمورة في السحابة!', true);
+          syncFromSupabase(true);
+        }
+      })();
+    };
+
+    window.deleteClosedJar = function(jarId) {
+      var jar = (state.jars || []).find(function(j) { return String(j.id) === String(jarId) && j.status === 'closed'; });
+      if (!jar) return;
+      if (calculateJarBalance(jar.id) !== 0) {
+        alert('لا يمكن مسح مطمورة فيها رصيد. افتحها واكسرها أولاً.');
+        return;
+      }
+      if (!confirm('مسح ' + jar.name + ' نهائياً؟')) return;
+
+      state.transactions = state.transactions.filter(function(t) { return String(t.jar_id) !== String(jar.id); });
+      state.jars = state.jars.filter(function(j) { return String(j.id) !== String(jar.id); });
+      saveToCache();
+      renderClosedJars(jar.kid_id);
+      window.showStatusToast('تم مسح ' + jar.name);
+
+      (async function() {
+        try {
+          await dbService.deleteJar(jar.id);
+        } catch (err) {
+          console.error('❌ Delete jar sync failed:', err);
+          window.showStatusToast('فشل المسح من السحابة!', true);
           syncFromSupabase(true);
         }
       })();

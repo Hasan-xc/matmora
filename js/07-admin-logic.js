@@ -75,10 +75,14 @@
     function getKidActualCurrencies(kidId) {
       var activeJar = getActiveJar(kidId);
       if (!activeJar) return [];
-      var targetBalance = calculateJarBalance(activeJar.id);
+      return getJarCurrencies(activeJar.id);
+    }
+
+    function getJarCurrencies(jarId) {
+      var targetBalance = calculateJarBalance(jarId);
       if (targetBalance <= 0) return [];
 
-      var txs = state.transactions.filter(function(t) { return String(t.jar_id) === String(activeJar.id); });
+      var txs = state.transactions.filter(function(t) { return String(t.jar_id) === String(jarId); });
       var pool = [];
       var stdDenoms = [200, 100, 50, 20, 10, 5, 1];
 
