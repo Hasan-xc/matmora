@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kids Piggy - مطمورة الأطفال الذكية 🏺✨</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Cairo -->
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <!-- Supabase JS Client CDN (With Fallbacks) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    if (!window.supabase) {
+      document.write('<script src="https://unpkg.com/@supabase/supabase-js@2"><\/script>');
+    }
+  </script>
+  <!-- Matter.js Physics Engine -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <!-- Confetti Celebration -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- Main stylesheet (extracted from original <style>) -->
+  <link rel="stylesheet" href="css/style.css">
+
+<body class="theme-shelf p-3 md:p-6" id="appBody">
+
+  <div class="blob-glow w-72 h-72 bg-pink-500 top-10 left-10"></div>
+  <div class="blob-glow w-80 h-80 bg-cyan-400 bottom-10 right-10"></div>
+  <div class="blob-glow w-64 h-64 bg-yellow-400 top-1/2 left-1/3"></div>
+
+  <!-- Toast Notification -->
+  <div id="statusToast" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-[1000000] transition-all duration-300 opacity-0 pointer-events-none bg-slate-900/95 text-white text-xs px-4 py-2.5 rounded-full border border-white/20 shadow-2xl flex items-center gap-2 max-w-[90vw] text-center">
+    <span id="statusToastIcon">🟢</span>
+    <span id="statusToastMsg">تم التحديث</span>
+  </div>
+
+  <div class="max-w-md md:max-w-lg mx-auto relative z-10">
+
+    <!-- ==================================================== -->
+    <!-- 🏠 VIEW 1: SHELF SCREEN (رف الجرار) -->
+    <!-- ==================================================== -->
+    <div id="shelfView" class="space-y-5">
+      
+      <!-- Top Bar -->
+      <div class="flex justify-between items-center bg-white/10 p-4 rounded-3xl backdrop-blur-md border border-white/20 shadow-lg relative">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-amber-400 flex items-center justify-center text-2xl shadow-md">
+            🏆
+          </div>
+          <div>
+            <h1 class="text-xl font-black tracking-tight">مطمورة العائلة الذكية</h1>
+            <div class="flex items-center gap-2 mt-0.5">
+              <span id="cloudStatusBadge" class="text-[10px] text-amber-300 font-bold flex items-center gap-1 cursor-pointer" onclick="testSupabaseConnection(true)" title="انقر لإعادة فحص الاتصال">
+                <span class="animate-ping text-xs">●</span> جاري الاتصال بـ cloud...
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin Controls in Shelf Header -->
+        <div>
+          <button id="guestAdminBtn" type="button" onclick="showModal('adminLoginModal')" class="bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 border border-amber-400/40 px-3.5 py-2 rounded-2xl font-black text-xs shadow transition flex items-center gap-1.5 cursor-pointer active:scale-95">
+            <span>🔐</span>
+            <span>دخول أدمن</span>
+          </button>
+
+          <div id="adminBurgerContainer" style="display: none;">
+            <button id="adminBurgerBtn" type="button" onclick="openAdminDrawer()" class="w-10 h-10 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-2xl font-black text-lg flex items-center justify-center shadow-lg transition cursor-pointer active:scale-95">
+              ☰
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Connection Error Alert Banner (if disconnected) -->
+      <div id="connectionErrorBanner" style="display: none;" class="p-3.5 bg-rose-900/80 border border-rose-500/50 rounded-2xl text-xs text-rose-100 shadow-xl flex flex-col gap-1.5">
+        <div class="flex items-center justify-between font-black">
+          <span class="flex items-center gap-1.5">⚠️ تعذر الاتصال بـ cloud</span>
+          <button onclick="testSupabaseConnection(true)" class="bg-rose-700 hover:bg-rose-600 px-2 py-0.5 rounded text-[10px] underline">إعادة المحاولة</button>
+        </div>
+        <div id="connectionErrorDetail" class="text-[10px] text-rose-200 font-mono bg-black/30 p-2 rounded-lg break-all max-h-24 overflow-y-auto"></div>
+      </div>
+
+      <!-- Leaderboard Podium -->
+      <div class="kids-card p-5 relative overflow-hidden">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+            <span>👑</span> بطل التوفير الأول حالياً
+          </span>
+          <span class="text-xs bg-amber-400/30 text-amber-200 px-2.5 py-0.5 rounded-full font-bold">دوري النجوم 🌟</span>
+        </div>
+        <div id="topLeaderInfo" class="flex items-center gap-4">
+          <div class="text-sm text-white/70">جاري تحميل البيانات...</div>
+        </div>
+      </div>
+
+      <!-- Wooden Shelf -->
+      <div class="relative pt-4 pb-1">
+        <div class="text-center text-xs font-bold text-white/80 mb-4 flex items-center justify-center gap-1">
+          <span>🏺 انقر على أي جرة لفتح حساب الطفل</span>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3 px-2 z-10 relative" id="shelfJarsGrid"></div>
+
+        <div class="wooden-shelf h-7 w-full mt-2 relative">
+          <div class="absolute inset-x-0 -bottom-3 h-3 bg-black/40 blur-[4px]"></div>
+        </div>
+      </div>
+
+      <!-- 📜 Global Transactions Feed -->
+      <div class="kids-card p-4">
+        <div class="flex justify-between items-center mb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-base">📜</span>
+            <h3 class="text-xs md:text-sm font-black text-white">سجل النشاطات والحركات الأخير</h3>
+          </div>
+          <span id="globalTxTotalBadge" class="text-[10px] bg-white/15 px-2.5 py-0.5 rounded-full font-bold text-amber-300">0 حركة</span>
+        </div>
+
+        <div class="overflow-y-auto max-h-[190px] space-y-2 pr-1 no-scrollbar" id="globalTransactionsFeed"></div>
+      </div>
+
+    </div>
+
+    <!-- ==================================================== -->
+    <!-- 📱 VIEW 2: CHILD VIEW (صفحة الجرة) -->
+    <!-- ==================================================== -->
+    <div id="childView" style="display: none;" class="space-y-4">
+      
+      <div class="flex justify-between items-center">
+        <button type="button" onclick="goToShelf()" class="bg-white/20 hover:bg-white/30 px-3.5 py-2 rounded-2xl backdrop-blur-md border border-white/30 text-xs font-bold flex items-center gap-1.5 shadow-md transition cursor-pointer active:scale-95">
+          <span>🪵 رف الجرار</span>
+        </button>
+
+        <div class="flex items-center gap-2 bg-white/20 px-4 py-1.5 rounded-2xl backdrop-blur-md border border-white/30">
+          <span id="childAvatar" class="text-2xl">👦</span>
+          <span id="childName" class="font-black text-sm">محمد</span>
+          <span id="childStarsBadge" class="bg-amber-400 text-slate-950 font-black text-xs px-2 py-0.5 rounded-full shadow">⭐ 0</span>
+        </div>
+
+        <div>
+          <button id="guestAdminBtnChild" type="button" onclick="showModal('adminLoginModal')" class="bg-white/20 hover:bg-white/30 text-white px-2.5 py-1.5 rounded-xl font-bold text-xs shadow transition flex items-center gap-1 border border-white/30 cursor-pointer">
+            <span>🔐</span>
+          </button>
+          <div id="adminBurgerContainerChild" style="display: none;">
+            <button type="button" onclick="openAdminDrawer()" class="w-8 h-8 bg-amber-400 text-slate-950 rounded-xl font-black flex items-center justify-center shadow cursor-pointer">
+              ☰
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Balance Card -->
+      <div class="kids-card p-5 relative overflow-hidden">
+        <div class="flex justify-between items-start mb-2">
+          <div>
+            <span class="text-xs font-bold text-white/80 block">رصيد المطمورة الحالي</span>
+            <h2 id="childBalance" class="text-3xl md:text-4xl font-black tracking-tight mt-0.5">0 ₺</h2>
+          </div>
+          <span id="rankBadge" class="text-xs font-black bg-white/20 px-3 py-1 rounded-full border border-white/30">
+            المركز #1 🏆
+          </span>
+        </div>
+
+        <!-- Goal Bar -->
+        <div class="mt-3">
+          <div class="flex justify-between text-[11px] font-bold text-white/80 mb-1">
+            <span id="childGoalText">الهدف: 0 ₺</span>
+            <span id="childGoalPercent">0%</span>
+          </div>
+          <div class="w-full bg-black/20 rounded-full h-2.5 p-0.5 overflow-hidden">
+            <div id="childProgressBar" class="bg-gradient-to-r from-amber-300 to-yellow-400 h-full rounded-full transition-all duration-500 w-0"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🌟 Currency Shelf (Admin Only) -->
+      <div id="adminDepositShelf" style="display: none;" class="flex flex-col items-center">
+        <span class="text-[11px] font-black text-white/90 mb-1 flex items-center gap-1">
+          <span>🪙 انقر على العملة للإيداع الفوري في السحابة والجار:</span>
+        </span>
+
+        <div class="w-full flex items-center gap-3 overflow-x-auto py-2.5 px-2 no-scrollbar scroll-smooth" id="depositCoinsContainer">
+          <div onclick="depositMoney(1)" class="money-shelf-item" title="1 ليرة">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-300 via-amber-500 to-amber-700 border-2 border-slate-200 flex flex-col items-center justify-center text-amber-950 font-black shadow-lg">
+              <span class="text-[7px] leading-none">☪</span>
+              <span class="text-base leading-none">1</span>
+              <span class="text-[6px] leading-none">LİRA</span>
+            </div>
+          </div>
+          <div onclick="depositMoney(5)" class="money-shelf-item" title="5 ليرات">
+            <div class="w-24 h-12 rounded-md bg-gradient-to-br from-[#581c87] via-[#7e22ce] to-[#3b0764] border border-white/40 p-1 flex flex-col justify-between text-purple-100 shadow-lg">
+              <div class="flex justify-between text-[7px] font-bold"><span>TCMB</span><span>5 ₺</span></div>
+              <div class="text-base font-black text-center">5</div>
+              <div class="text-[5px] text-purple-200">BEŞ LİRA</div>
+            </div>
+          </div>
+          <div onclick="depositMoney(10)" class="money-shelf-item" title="10 ليرات (+1 ⭐)">
+            <div class="w-24 h-12 rounded-md bg-gradient-to-br from-[#9f1239] via-[#e11d48] to-[#881337] border border-white/40 p-1 flex flex-col justify-between text-rose-100 shadow-lg">
+              <div class="flex justify-between text-[7px] font-bold"><span>TCMB</span><span>10 ₺</span></div>
+              <div class="text-base font-black text-center">10</div>
+              <div class="text-[5px] text-rose-200">ON LİRA</div>
+            </div>
+          </div>
+          <div onclick="depositMoney(20)" class="money-shelf-item" title="20 ليرة (+2 ⭐)">
+            <div class="w-24 h-12 rounded-md bg-gradient-to-br from-[#065f46] via-[#059669] to-[#064e3b] border border-white/40 p-1 flex flex-col justify-between text-emerald-100 shadow-lg">
+              <div class="flex justify-between text-[7px] font-bold"><span>TCMB</span><span>20 ₺</span></div>
+              <div class="text-base font-black text-center">20</div>
+              <div class="text-[5px] text-emerald-200">YİRMİ LİRA</div>
+            </div>
+          </div>
+          <div onclick="depositMoney(50)" class="money-shelf-item" title="50 ليرة (+5 ⭐)">
+            <div class="w-24 h-12 rounded-md bg-gradient-to-br from-[#9a3412] via-[#ea580c] to-[#7c2d12] border border-white/40 p-1 flex flex-col justify-between text-orange-100 shadow-lg">
+              <div class="flex justify-between text-[7px] font-bold"><span>TCMB</span><span>50 ₺</span></div>
+              <div class="text-base font-black text-center">50</div>
+              <div class="text-[5px] text-orange-200">ELLİ LİRA</div>
+            </div>
+          </div>
+          <div onclick="depositMoney(100)" class="money-shelf-item" title="100 ليرة (+10 ⭐)">
+            <div class="w-24 h-12 rounded-md bg-gradient-to-br from-[#0369a1] via-[#0284c7] to-[#075985] border border-white/40 p-1 flex flex-col justify-between text-sky-100 shadow-lg">
+              <div class="flex justify-between text-[7px] font-bold"><span>TCMB</span><span>100 ₺</span></div>
+              <div class="text-base font-black text-center">100</div>
+              <div class="text-[5px] text-sky-200">YÜZ LİRA</div>
+            </div>
+          </div>
+          <div onclick="depositMoney(200)" class="money-shelf-item" title="200 ليرة (+20 ⭐)">
+            <div class="w-24 h-12 rounded-md bg-gradient-to-br from-[#86198f] via-[#c026d3] to-[#701a75] border border-white/40 p-1 flex flex-col justify-between text-fuchsia-100 shadow-lg">
+              <div class="flex justify-between text-[7px] font-bold"><span>TCMB 👑</span><span>200 ₺</span></div>
+              <div class="text-base font-black text-center">200</div>
+              <div class="text-[5px] text-fuchsia-200">İKİ YÜZ LİRA</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🏺 The Glass Jar Container -->
+      <div class="flex flex-col items-center relative">
+        <div class="jar-lid"></div>
+        <div class="jar-neck"></div>
+        
+        <div class="glass-jar-wrapper w-[300px] h-[350px] relative">
+          <div id="physicsContainer" class="w-[300px] h-[350px]"></div>
+          <div class="absolute inset-y-4 left-3 w-5 bg-gradient-to-r from-white/20 to-transparent rounded-full pointer-events-none blur-[1px]"></div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex gap-2.5 mt-3 w-[300px]">
+          <button type="button" onclick="organizeMoneyLikeCards()" class="flex-1 bg-gradient-to-r from-amber-400 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-slate-950 font-black py-2.5 rounded-2xl text-xs shadow-lg shadow-amber-950/20 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95">
+            <span>🎴</span>
+            <span>ترتيب (كأوراق اللعب)</span>
+          </button>
+          <button type="button" onclick="scatterMoneyFreely()" class="flex-1 bg-white/20 hover:bg-white/30 text-white font-black py-2.5 rounded-2xl text-xs backdrop-blur-md border border-white/30 shadow transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95">
+            <span>🌪️</span>
+            <span>فتل هادئ</span>
+          </button>
+        </div>
+
+        <!-- Admin Only Buttons -->
+        <div id="adminActionButtons" style="display: none;" class="flex gap-2.5 mt-2 w-[300px]">
+          <button type="button" id="withdrawBtnOpener" onclick="showModal('withdrawModal')" class="flex-1 bg-white/20 hover:bg-white/30 border border-white/30 text-white font-black py-2 rounded-2xl text-xs backdrop-blur-md shadow-md transition cursor-pointer">
+            💸 سحب مبلغ
+          </button>
+          <button type="button" id="smashJarBtn" onclick="smashJar()" class="flex-1 bg-rose-500 hover:bg-rose-600 text-white font-black py-2 rounded-2xl text-xs shadow-lg shadow-rose-950/30 transition cursor-pointer">
+            🔨 كسر المطمورة
+          </button>
+        </div>
+      </div>
+
+      <!-- Recent Transactions List inside Child View -->
+      <div class="kids-card p-4">
+        <div class="flex justify-between items-center mb-2">
+          <h3 class="text-xs font-black text-white/90">📜 سجل عمليات المطمورة</h3>
+          <span id="childTxCount" class="text-[10px] text-white/70">0 حركات</span>
+        </div>
+        <div class="overflow-y-auto max-h-[120px] space-y-1.5 pr-1 no-scrollbar" id="transactionsList"></div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ==================================================== -->
+  <!-- 🛡️ TOP-LEVEL ADMIN SLIDE DRAWER -->
+  <!-- ==================================================== -->
+  <div id="adminDrawerOverlay" class="admin-drawer-overlay" onclick="closeAdminDrawer()"></div>
+  <div id="adminDrawer" style="display: none;" class="fixed inset-y-0 right-0 w-72 bg-slate-900 border-l border-white/20 shadow-2xl p-5 z-[999999] flex flex-col justify-between text-white">
+    <div>
+      <div class="flex items-center justify-between border-b border-white/10 pb-4 mb-4">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">👑</span>
+          <div>
+            <h3 class="font-black text-amber-400 text-sm">لوحة المشرف</h3>
+            <span class="text-[10px] text-emerald-400 font-bold">● متصل بالنظام</span>
+          </div>
+        </div>
+        <button type="button" onclick="closeAdminDrawer()" class="text-white/60 hover:text-white text-lg font-bold cursor-pointer">✕</button>
+      </div>
+
+      <div class="space-y-2 text-xs font-bold">
+        <button type="button" onclick="showModal('addKidModal'); closeAdminDrawer()" class="w-full text-right px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 flex items-center gap-2.5 border border-white/5 cursor-pointer">
+          <span>➕</span> إضافة مطمورة جديدة
+        </button>
+
+        <button type="button" onclick="openEditKidModal(); closeAdminDrawer()" class="w-full text-right px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 flex items-center gap-2.5 border border-white/5 cursor-pointer">
+          <span>✏️</span> تعديل بيانات مطمورة
+        </button>
+
+        <button type="button" onclick="openDeleteKidModal(); closeAdminDrawer()" class="w-full text-right px-3.5 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 flex items-center gap-2.5 border border-rose-500/20 cursor-pointer">
+          <span>🗑️</span> حذف مطمورة
+        </button>
+
+        <button type="button" onclick="showModal('adminPanelModal'); renderAdminKidsTable(); renderAdminTransactionsTable(); closeAdminDrawer()" class="w-full text-right px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 flex items-center gap-2.5 border border-white/5 cursor-pointer">
+          <span>⚙️</span> إدارة المعاملات وسجل الحركات
+        </button>
+
+        <button type="button" onclick="openStatsModal(); closeAdminDrawer()" class="w-full text-right px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 flex items-center gap-2.5 border border-white/5 cursor-pointer">
+          <span>📊</span> الإحصائيات العامة
+        </button>
+
+        <button type="button" onclick="showModal('changePassModal'); closeAdminDrawer()" class="w-full text-right px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 flex items-center gap-2.5 border border-white/5 cursor-pointer">
+          <span>🔑</span> تغيير كلمة السر
+        </button>
+      </div>
+    </div>
+
+    <div>
+      <button type="button" onclick="logoutAdmin(); closeAdminDrawer()" class="w-full py-2.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 font-black text-xs border border-rose-500/30 flex items-center justify-center gap-2 cursor-pointer">
+        <span>🚪</span> تسجيل خروج الأدمن
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================================================== -->
+  <!-- 🔐 MODALS -->
+  <!-- ==================================================== -->
+  <!-- 1. Login Modal -->
+  <div id="adminLoginModal" class="app-modal">
+    <div class="bg-slate-900 border border-white/20 rounded-3xl p-6 w-full max-w-sm shadow-2xl text-white">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-black text-amber-400 flex items-center gap-2">
+          <span>🔐</span> دخول المشرف (Admin)
+        </h3>
+        <button type="button" onclick="hideModal('adminLoginModal')" class="text-white/60 hover:text-white text-sm font-bold cursor-pointer">✕</button>
+      </div>
+
+      <form onsubmit="handleSimpleAdminLogin(event)">
+        <div class="mb-4">
+          <label class="block text-xs text-white/70 mb-1.5">أدخل كلمة المرور:</label>
+          <input type="password" id="adminSimplePassInput" required placeholder="••••••••" class="w-full bg-slate-800 border border-white/20 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400 text-center font-bold tracking-widest">
+        </div>
+
+        <div id="adminLoginError" style="display: none;" class="mb-3 text-xs text-rose-400 font-bold text-center bg-rose-950/40 p-2 rounded-xl border border-rose-800">
+          كلمة المرور غير صحيحة!
+        </div>
+
+        <div class="flex justify-end gap-2 text-xs font-bold">
+          <button type="button" onclick="hideModal('adminLoginModal')" class="px-4 py-2 rounded-xl text-white/60 hover:text-white cursor-pointer">إلغاء</button>
+          <button type="submit" class="bg-amber-400 text-slate-950 font-black px-6 py-2 rounded-xl shadow-lg hover:bg-amber-300 cursor-pointer">
+            دخول 🔓
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. Edit Kid Modal -->
+  <div id="editKidModal" class="app-modal">
+    <div class="bg-slate-900 border border-white/20 rounded-3xl p-5 w-full max-w-sm shadow-2xl text-white">
+      <h3 class="text-lg font-black text-amber-400 mb-3 flex items-center gap-2">
+        <span>✏️</span> تعديل بيانات المطمورة
+      </h3>
+      <form onsubmit="handleSaveEditedKid(event)">
+        <div class="mb-3">
+          <label class="block text-xs text-white/70 mb-1">اختر الطفل لتعديل بياناته</label>
+          <select id="editKidSelect" onchange="populateEditKidFields()" class="w-full bg-slate-800 border border-white/20 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400"></select>
+        </div>
+
+        <div class="mb-3">
+          <label class="block text-xs text-white/70 mb-1">اسم الطفل الجديد</label>
+          <input type="text" id="editKidNameInput" required class="w-full bg-slate-800 border border-white/20 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400">
+        </div>
+
+        <div class="mb-3">
+          <label class="block text-xs text-white/70 mb-1">المظهر / الثيم</label>
+          <div class="grid grid-cols-3 gap-2 text-xs font-bold text-center">
+            <label class="cursor-pointer">
+              <input type="radio" name="editGenderTheme" value="boy" class="peer sr-only">
+              <div class="p-2 rounded-xl bg-slate-800 peer-checked:bg-sky-500 peer-checked:text-white border border-white/10">
+                👦 ولد
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="editGenderTheme" value="girl" class="peer sr-only">
+              <div class="p-2 rounded-xl bg-slate-800 peer-checked:bg-pink-500 peer-checked:text-white border border-white/10">
+                👧 بنت
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="editGenderTheme" value="green" class="peer sr-only">
+              <div class="p-2 rounded-xl bg-slate-800 peer-checked:bg-emerald-500 peer-checked:text-white border border-white/10">
+                🦁 بطل
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-xs text-white/70 mb-1">هدف التوفير (TL)</label>
+          <input type="number" id="editKidGoalInput" min="0" class="w-full bg-slate-800 border border-white/20 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400">
+        </div>
+
+        <div class="flex justify-end gap-2 text-xs font-bold">
+          <button type="button" onclick="hideModal('editKidModal')" class="px-4 py-2 rounded-xl text-white/60 cursor-pointer">إلغاء</button>
+          <button type="submit" id="editKidSubmitBtn" class="bg-amber-400 text-slate-950 font-black px-5 py-2 rounded-xl cursor-pointer hover:bg-amber-300">حفظ التعديلات</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. Dedicated Delete Kid Modal -->
+  <div id="deleteKidModal" class="app-modal">
+    <div class="bg-slate-900 border border-white/20 rounded-3xl p-5 w-full max-w-sm shadow-2xl text-white">
+      <h3 class="text-lg font-black text-rose-400 mb-3 flex items-center gap-2">
+        <span>🗑️</span> حذف مطمورة طفل
+      </h3>
+      <form onsubmit="handleModalDeleteKid(event)">
+        <div class="mb-4">
+          <label class="block text-xs text-white/70 mb-1.5">اختر المطمورة المراد حذفها نهائياً:</label>
+          <select id="deleteKidSelect" class="w-full bg-slate-800 border border-white/20 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-400"></select>
+        </div>
+        <p class="text-[11px] text-rose-300 bg-rose-950/50 p-2.5 rounded-xl border border-rose-800/60 mb-4 leading-relaxed">
+          ⚠️ تحذير: سيتم حذف المطمورة وكافة سجلات الإيداع والسحب الخاصة بها من السحابة بشكل نهائي ولا يمكن التراجع.
+        </p>
+        <div class="flex justify-end gap-2 text-xs font-bold">
+          <button type="button" onclick="hideModal('deleteKidModal')" class="px-4 py-2 rounded-xl text-white/60 hover:text-white cursor-pointer">إلغاء</button>
+          <button type="submit" id="deleteKidSubmitBtn" class="bg-rose-600 text-white font-black px-5 py-2 rounded-xl shadow-lg hover:bg-rose-700 cursor-pointer">تأكيد الحذف 🗑️</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 4. Statistics Modal -->
+  <div id="statsModal" class="app-modal">
+    <div class="bg-slate-900 border border-white/20 rounded-3xl p-6 w-full max-w-sm shadow-2xl text-white">
+      <div class="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
+        <h3 class="text-base font-black text-amber-400 flex items-center gap-2">
+          <span>📊</span> إحصائيات مدخرات العائلة
+        </h3>
+        <button type="button" onclick="hideModal('statsModal')" class="text-white/60 hover:text-white text-sm font-bold cursor-pointer">✕</button>
+      </div>
+
+      <div class="space-y-3 text-xs" id="statsContainer"></div>
+
+      <div class="mt-5 flex justify-end">
+        <button type="button" onclick="hideModal('statsModal')" class="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Add Kid Modal -->
+  <div id="addKidModal" class="app-modal">
+    <div class="bg-slate-900 border border-white/20 rounded-3xl p-5 w-full max-w-sm shadow-2xl text-white">
+      <h3 class="text-lg font-black text-amber-400 mb-3 flex items-center gap-2">
+        <span>➕</span> إضافة مطمورة جديدة
+      </h3>
+      <form onsubmit="handleAddKid(event)">
+        <div class="mb-3">
+          <label class="block text-xs text-white/70 mb-1">اسم الطفل / البطل</label>
+          <input type="text" id="kidNameInput" required placeholder="مثلاً: صوفيا، يوسف..." class="w-full bg-slate-800 border border-white/20 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400">
+        </div>
+        <div class="mb-3">
+          <label class="block text-xs text-white/70 mb-1">اختر الثيم والمظهر</label>
+          <div class="grid grid-cols-3 gap-2 text-xs font-bold text-center">
+            <label class="cursor-pointer">
+              <input type="radio" name="genderTheme" value="boy" checked class="peer sr-only">
+              <div class="p-2 rounded-xl bg-slate-800 peer-checked:bg-sky-500 peer-checked:text-white border border-white/10">
+                👦 ولد (أزرق)
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="genderTheme" value="girl" class="peer sr-only">
+              <div class="p-2 rounded-xl bg-slate-800 peer-checked:bg-pink-500 peer-checked:text-white border border-white/10">
+                👧 بنت (وردي)
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="genderTheme" value="green" class="peer sr-only">
+              <div class="p-2 rounded-xl bg-slate-800 peer-checked:bg-emerald-500 peer-checked:text-white border border-white/10">
+                🦁 بطل (أخضر)
+              </div>
+            </label>
+          </div>
+        </div>
+        <div class="mb-5">
+          <label class="block text-xs text-white/70 mb-1">هدف التوفير (TL)</label>
+          <input type="number" id="kidGoalInput" min="0" placeholder="مثلاً: 1200 TL" class="w-full bg-slate-800 border border-white/20 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400">
+        </div>
+        <div class="flex justify-end gap-2 text-xs font-bold">
+          <button type="button" onclick="hideModal('addKidModal')" class="px-4 py-2 rounded-xl text-white/60 hover:text-white cursor-pointer">إلغاء</button>
+          <button type="submit" id="addKidSubmitBtn" class="bg-amber-400 text-slate-950 font-black px-5 py-2 rounded-xl shadow-lg hover:bg-amber-300 cursor-pointer">إضافة المطمورة</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 6. Change Password Modal -->
+  <div id="changePassModal" class="app-modal">
+    <div class="bg-slate-900 border border-white/20 rounded-3xl p-6 w-full max-w-sm shadow-2xl text-white">
+      <h3 class="text-base font-black text-amber-400 mb-3 flex items-center gap-2">
+        <span>🔑</span> تغيير كلمة مرور الأدمن
+      </h3>
+      <form onsubmit="handleChangePassword(event)">
+        <div class="mb-3">
+          <label class="block text-xs text-white/70 mb-1">كلمة المرور الحالية</label>
+          <input type="password" id="oldPassInput" required class="w-full bg-slate-800 border border-white/20 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400">
+        </div>
+        <div class="mb-4">
+          <label class="block text-xs text-white/70 mb-1">كلمة المرور الجديدة</label>
+          <input type="password" id="newPassInput" required class="w-full bg-slate-800 border border-white/20 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400">
+        </div>
+        <div class="flex justify-end gap-2 text-xs font-bold">
+          <button type="button" onclick="hideModal('changePassModal')" class="px-4 py-2 rounded-xl text-white/60 cursor-pointer">إلغاء</button>
+          <button type="submit" class="bg-amber-400 text-slate-950 font-black px-5 py-2 rounded-xl cursor-pointer hover:bg-amber-300">حفظ التغيير</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 7. Management Modal -->
+  <div id="adminPanelModal" class="app-modal">
+    <div class="bg-slate-900 border border-white/20 rounded-3xl p-5 md:p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl text-white no-scrollbar">
+      <div class="flex items-center justify-between border-b border-white/10 pb-4 mb-4">
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl">🛡️</span>
+          <h3 class="text-lg font-black text-amber-400">إدارة الحسابات والمعاملات</h3>
+        </div>
+        <button type="button" onclick="hideModal('adminPanelModal')" class="text-white/60 hover:text-white text-lg font-bold px-2 cursor-pointer">✕</button>
+      </div>
+
+      <div class="space-y-5">
+        <div class="bg-slate-800/80 p-4 rounded-2xl border border-white/10">
+          <h4 class="text-sm font-black text-amber-300 mb-3">👥 قائمة الأطفال والمطامير</h4>
+          <div class="space-y-2" id="adminKidsTable"></div>
+        </div>
+
+        <div class="bg-slate-800/80 p-4 rounded-2xl border border-white/10">
+          <h4 class="text-sm font-black text-amber-300 mb-3">📜 سجل جميع الحركات النقدية</h4>
+          <div class="max-h-56 overflow-y-auto space-y-1.5 pr-1 no-scrollbar" id="adminTransactionsTable"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. Withdraw Modal -->
+  <div id="withdrawModal" class="app-modal">
+    <div class="bg-slate-900 border border-white/20 rounded-3xl p-5 w-full max-w-sm shadow-2xl text-white">
+      <h3 class="text-lg font-black text-rose-400 mb-3 flex items-center gap-2">
+        <span>💸</span> سحب مبلغ من المطمورة
+      </h3>
+      <form onsubmit="handleWithdraw(event)">
+        <div class="mb-3">
+          <label class="block text-xs text-white/70 mb-1">المبلغ المراد سحبه (TL)</label>
+          <input type="number" id="withdrawAmountInput" required min="1" step="any" class="w-full bg-slate-800 border border-white/20 rounded-xl px-3 py-2 text-lg font-bold text-white focus:outline-none focus:border-rose-400">
+        </div>
+        <div class="mb-5">
+          <label class="block text-xs text-white/70 mb-1">سبب السحب</label>
+          <input type="text" id="withdrawReasonInput" placeholder="مثلاً: شراء هدية..." class="w-full bg-slate-800 border border-white/20 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-400">
+        </div>
+        <div class="flex justify-end gap-2 text-xs font-bold">
+          <button type="button" onclick="hideModal('withdrawModal')" class="px-4 py-2 rounded-xl text-white/60 cursor-pointer">إلغاء</button>
+          <button type="submit" id="withdrawSubmitBtn" class="bg-rose-500 text-white font-black px-5 py-2 rounded-xl shadow-lg hover:bg-rose-600 cursor-pointer">تأكيد السحب</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================================================== -->
+  <!-- ⚙️ JAVASCRIPT ENGINE -->
+  <!-- ==================================================== -->
+  <!-- JAVASCRIPT ENGINE (split into js/ modules, same order) -->
+  <!-- ==================================================== -->
+  <script src="js/01-config.js"></script>
+  <script src="js/02-state-cache.js"></script>
+  <script src="js/03-ui-helpers.js"></script>
+  <script src="js/04-supabase-rest.js"></script>
+  <script src="js/05-realtime.js"></script>
+  <script src="js/06-sync.js"></script>
+  <script src="js/07-admin-logic.js"></script>
+  <script src="js/08-physics-render.js"></script>
+  <script src="js/09-views.js"></script>
+  <script src="js/10-crud.js"></script>
+  <script src="js/11-admin-tables.js"></script>
+  <script src="js/12-boot.js"></script>
+</body>
+</html>
