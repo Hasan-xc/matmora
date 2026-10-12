@@ -15,6 +15,57 @@
         }, 0);
     }
 
+    function getActiveJar(kidId) {
+      return (state.jars || []).find(function(j) {
+        return String(j.kid_id) === String(kidId) && j.status === 'active';
+      }) || null;
+    }
+
+    function getActiveJarId(kidId) {
+      var jar = getActiveJar(kidId);
+      return jar ? jar.id : null;
+    }
+
+    function getClosedJars(kidId) {
+      return (state.jars || []).filter(function(j) {
+        return String(j.kid_id) === String(kidId) && j.status === 'closed';
+      }).sort(function(a, b) { return String(a.created_at).localeCompare(String(b.created_at)); });
+    }
+
+    function calculateJarBalance(jarId) {
+      return state.transactions
+        .filter(function(t) { return String(t.jar_id) === String(jarId); })
+        .reduce(function(sum, t) {
+          return t.type === 'deposit' ? sum + Number(t.amount) : sum - Number(t.amount);
+        }, 0);
+    }
+
+    function calculateActiveBalance(kidId) {
+      var jar = getActiveJar(kidId);
+      return jar ? calculateJarBalance(jar.id) : 0;
+    }
+
+    // Makes sure every kid has exactly one open jar (creates it if missing)
+    function ensureActiveJars() {
+      (state.kids || []).forEach(function(kid) {
+        if (getActiveJar(kid.id)) return;
+        var count = (state.jars || []).filter(function(j) { return String(j.kid_id) === String(kid.id); }).length;
+        var jar = {
+          id: generateUUID(),
+          kid_id: kid.id,
+          name: 'مطمورة ' + (count + 1),
+          status: 'active',
+          created_at: new Date().toISOString(),
+          closed_at: null
+        };
+        state.jars.push(jar);
+        dbService.insertJar(jar).catch(function(err) {
+          console.error('❌ Failed to create jar:', err);
+        });
+      });
+      saveToCache();
+    }
+
     function calculateKidStars(kidId) {
       var bal = calculateKidBalance(kidId);
       if (bal <= 0) return 0;
@@ -22,10 +73,12 @@
     }
 
     function getKidActualCurrencies(kidId) {
-      var targetBalance = calculateKidBalance(kidId);
+      var activeJar = getActiveJar(kidId);
+      if (!activeJar) return [];
+      var targetBalance = calculateJarBalance(activeJar.id);
       if (targetBalance <= 0) return [];
 
-      var txs = state.transactions.filter(function(t) { return String(t.kid_id) === String(kidId); });
+      var txs = state.transactions.filter(function(t) { return String(t.jar_id) === String(activeJar.id); });
       var pool = [];
       var stdDenoms = [200, 100, 50, 20, 10, 5, 1];
 

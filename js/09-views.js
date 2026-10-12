@@ -125,7 +125,7 @@
       var stars = calculateKidStars(kid.id);
       document.getElementById('childStarsBadge').textContent = '⭐ ' + stars;
 
-      var bal = calculateKidBalance(kid.id);
+      var bal = calculateActiveBalance(kid.id);
       document.getElementById('childBalance').textContent = bal.toLocaleString() + ' ₺';
 
       var goal = kid.goal || 0;
@@ -138,6 +138,7 @@
       document.getElementById('rankBadge').textContent = (topKid && String(topKid.id) === String(kid.id)) ? 'المركز #1 👑' : 'بطل التوفير 🏅';
 
       renderTransactionsList();
+      renderClosedJars(kid.id);
       if (!preservePhysics) {
         reloadJarNotes(false);
       }
@@ -161,12 +162,31 @@
       updateAdminUI();
     };
 
+    function renderClosedJars(kidId) {
+      var box = document.getElementById('closedJarsRow');
+      if (!box) return;
+      var closed = getClosedJars(kidId);
+      if (closed.length === 0) {
+        box.innerHTML = '';
+        return;
+      }
+      box.innerHTML = closed.map(function(j) {
+        var b = calculateJarBalance(j.id);
+        return '' +
+          '<div class="flex flex-col items-center gap-1">' +
+            '<div class="glass-jar-wrapper w-16 h-20 flex items-end justify-center pb-1.5 text-[11px] font-black text-white">' + b.toLocaleString() + ' ₺</div>' +
+            '<span class="text-[9px] text-white/80 font-bold">' + j.name + '</span>' +
+          '</div>';
+      }).join('');
+    }
+
     function renderTransactionsList() {
       var list = document.getElementById('transactionsList');
       if (!list) return;
 
+      var activeJar = getActiveJar(state.activeKidId);
       var kidTx = state.transactions
-        .filter(function(t) { return String(t.kid_id) === String(state.activeKidId); })
+        .filter(function(t) { return activeJar && String(t.jar_id) === String(activeJar.id); })
         .slice().reverse();
 
       document.getElementById('childTxCount').textContent = kidTx.length + ' حركات';

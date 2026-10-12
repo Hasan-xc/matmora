@@ -10,10 +10,17 @@
       var activeKid = state.kids.find(function(k) { return String(k.id) === String(state.activeKidId); });
       if (!activeKid) return;
 
+      var activeJarRef = getActiveJar(activeKid.id);
+      if (!activeJarRef) {
+        alert('لا توجد مطمورة مفتوحة لهذا الطفل!');
+        return;
+      }
+
       var newTxId = generateUUID();
       var newTx = {
         id: newTxId,
         kid_id: activeKid.id,
+        jar_id: activeJarRef.id,
         amount: Number(amount),
         type: 'deposit',
         note: 'إيداع ' + amount + ' ₺',
@@ -59,7 +66,7 @@
 
       var amount = parseFloat(document.getElementById('withdrawAmountInput').value);
       var reason = document.getElementById('withdrawReasonInput').value || 'سحب من المطمورة';
-      var balance = calculateKidBalance(state.activeKidId);
+      var balance = calculateActiveBalance(state.activeKidId);
 
       if (isNaN(amount) || amount <= 0) {
         alert('يرجى إدخال مبلغ سحب صالح!');
@@ -74,6 +81,7 @@
       var newTx = {
         id: newTxId,
         kid_id: state.activeKidId,
+        jar_id: getActiveJarId(state.activeKidId),
         amount: Number(amount),
         type: 'withdraw',
         note: reason,
@@ -117,7 +125,7 @@
       var activeKid = state.kids.find(function(k) { return String(k.id) === String(state.activeKidId); });
       if (!activeKid) return;
 
-      var balance = calculateKidBalance(state.activeKidId);
+      var balance = calculateActiveBalance(state.activeKidId);
       if (balance <= 0) {
         alert('المطمورة فارغة بالفعل!');
         return;
@@ -128,6 +136,7 @@
       var newTx = {
         id: newTxId,
         kid_id: state.activeKidId,
+        jar_id: getActiveJarId(state.activeKidId),
         amount: balance,
         type: 'withdraw',
         note: '🔨 كسر المطمورة وتسليم الرصيد 🎉',
@@ -199,6 +208,7 @@
       (async function() {
         try {
           await dbService.insertKid(newKid);
+          ensureActiveJars();
         } catch (err) {
           console.error('❌ Background add kid sync failed:', err);
           state.kids = state.kids.filter(function(k) { return String(k.id) !== String(newKidId); });
@@ -331,6 +341,7 @@
 
       state.kids = state.kids.filter(function(k) { return String(k.id) !== String(kidId); });
       state.transactions = state.transactions.filter(function(t) { return String(t.kid_id) !== String(kidId); });
+      state.jars = state.jars.filter(function(j) { return String(j.kid_id) !== String(kidId); });
       saveToCache();
 
       renderAdminKidsTable();
@@ -352,6 +363,62 @@
           renderShelfView();
           window.showStatusToast('فشل الحذف من السحابة!', true);
           alert('تعذر حذف المطمورة من Supabase:\n' + formatErrorDetail(err));
+        }
+      })();
+    };
+
+    // H. Close Jar: puts the current jar aside (filled) and opens an empty one
+    window.closeCurrentJar = function() {
+      var kidId = state.activeKidId;
+      if (!kidId) return;
+      var jar = getActiveJar(kidId);
+      if (!jar) return;
+
+      var bal = calculateJarBalance(jar.id);
+      if (!confirm('إغلاق هذه المطمورة ووضعها جانباً (الرصيد: ' + bal + ' ₺)؟ ستفتح مطمورة جديدة فارغة.')) return;
+
+      var nowIso = new Date().toISOString();
+      var count = (state.jars || []).filter(function(j) { return String(j.kid_id) === String(kidId); }).length;
+      var newJar = {
+        id: generateUUID(),
+        kid_id: kidId,
+        name: 'مطمورة ' + (count + 1),
+        status: 'active',
+        created_at: nowIso,
+        closed_at: null
+      };
+
+      jar.status = 'closed';
+      jar.closed_at = nowIso;
+      state.jars.push(newJar);
+      saveToCache();
+
+      var wrap = document.getElementById('activeJarWrapper');
+      if (wrap) wrap.classList.add('jar-slide-down');
+
+      setTimeout(function() {
+        clearJarPhysics();
+        refreshActiveChildView(false);
+        if (wrap) {
+          wrap.style.transition = 'none';
+          wrap.classList.remove('jar-slide-down');
+          void wrap.offsetWidth;
+          wrap.style.transition = '';
+          wrap.classList.add('jar-fade-in');
+          setTimeout(function() { wrap.classList.remove('jar-fade-in'); }, 700);
+        }
+      }, 650);
+
+      window.showStatusToast('تم إغلاق المطمورة ووضعها جانباً 🫙');
+
+      (async function() {
+        try {
+          await dbService.updateJar(jar.id, { status: 'closed', closed_at: nowIso });
+          await dbService.insertJar(newJar);
+        } catch (err) {
+          console.error('❌ Close jar sync failed:', err);
+          window.showStatusToast('فشل حفظ إغلاق المطمورة في السحابة!', true);
+          syncFromSupabase(true);
         }
       })();
     };

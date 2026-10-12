@@ -6,6 +6,9 @@
           .on('postgres_changes', { event: '*', schema: 'public', table: 'kids' }, function(payload) {
             handleKidRealtimeDelta(payload);
           })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'jars' }, function() {
+            syncFromSupabase(true);
+          })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, function(payload) {
             handleTransactionRealtimeDelta(payload);
           })

@@ -56,6 +56,46 @@
         return await directRestFetch('/transactions?select=*&order=created_at.asc');
       },
 
+      fetchJars: async function() {
+        if (supabaseClient) {
+          try {
+            var res = await supabaseClient.from('jars').select('*').order('created_at', { ascending: true });
+            if (!res.error) return res.data || [];
+          } catch (e) {}
+        }
+        return await directRestFetch('/jars?select=*&order=created_at.asc');
+      },
+
+      insertJar: async function(jar) {
+        if (supabaseClient) {
+          try {
+            var res = await supabaseClient.from('jars').insert([jar]).select().single();
+            if (!res.error) return res.data;
+          } catch(e) {}
+        }
+        var list = await directRestFetch('/jars', {
+          method: 'POST',
+          headers: { 'Prefer': 'return=representation' },
+          body: JSON.stringify(jar)
+        });
+        return Array.isArray(list) ? list[0] : list;
+      },
+
+      updateJar: async function(id, data) {
+        if (supabaseClient) {
+          try {
+            var res = await supabaseClient.from('jars').update(data).eq('id', id).select().single();
+            if (!res.error) return res.data;
+          } catch(e) {}
+        }
+        var list = await directRestFetch('/jars?id=eq.' + encodeURIComponent(id), {
+          method: 'PATCH',
+          headers: { 'Prefer': 'return=representation' },
+          body: JSON.stringify(data)
+        });
+        return Array.isArray(list) ? list[0] : list;
+      },
+
       insertKid: async function(kid) {
         if (supabaseClient) {
           try {

@@ -50,9 +50,12 @@
       try {
         var remoteKids = await dbService.fetchKids();
         var remoteTx = await dbService.fetchTransactions();
+        var remoteJars = await dbService.fetchJars();
 
         state.kids = remoteKids || [];
         state.transactions = remoteTx || [];
+        state.jars = remoteJars || [];
+        ensureActiveJars();
         saveToCache();
 
         renderShelfView();

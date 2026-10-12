@@ -4,7 +4,8 @@
       isAdmin: false,
       isSupabaseConnected: false,
       kids: [],
-      transactions: []
+      transactions: [],
+      jars: []
     };
 
     function loadAdminSession() {
@@ -19,6 +20,7 @@
       try {
         localStorage.setItem('kp_kids_cache', JSON.stringify(state.kids));
         localStorage.setItem('kp_tx_cache', JSON.stringify(state.transactions));
+        localStorage.setItem('kp_jars_cache', JSON.stringify(state.jars));
       } catch (e) {}
     }
 
@@ -33,6 +35,11 @@
         if (t) {
           var parsedT = JSON.parse(t);
           if (Array.isArray(parsedT)) state.transactions = parsedT;
+        }
+        var jr = localStorage.getItem('kp_jars_cache');
+        if (jr) {
+          var parsedJ = JSON.parse(jr);
+          if (Array.isArray(parsedJ)) state.jars = parsedJ;
         }
       } catch (e) {}
     }

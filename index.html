@@ -240,7 +240,7 @@
         <div class="jar-lid"></div>
         <div class="jar-neck"></div>
         
-        <div class="glass-jar-wrapper w-[300px] h-[350px] relative">
+        <div id="activeJarWrapper" class="glass-jar-wrapper w-[300px] h-[350px] relative">
           <div id="physicsContainer" class="w-[300px] h-[350px]"></div>
           <div class="absolute inset-y-4 left-3 w-5 bg-gradient-to-r from-white/20 to-transparent rounded-full pointer-events-none blur-[1px]"></div>
         </div>
@@ -266,6 +266,14 @@
             🔨 كسر المطمورة
           </button>
         </div>
+      </div>
+
+      <!-- Close Jar + Closed Jars -->
+      <div class="flex flex-col items-center gap-3">
+        <button type="button" id="closeJarBtn" onclick="closeCurrentJar()" class="bg-white/20 hover:bg-white/30 border border-white/30 text-white font-black py-2 px-5 rounded-2xl text-xs backdrop-blur-md shadow-md transition cursor-pointer active:scale-95">
+          🫙 إغلاق الجرة
+        </button>
+        <div id="closedJarsRow" class="flex flex-wrap justify-center gap-3"></div>
       </div>
 
       <!-- Recent Transactions List inside Child View -->
