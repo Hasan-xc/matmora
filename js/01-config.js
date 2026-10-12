@@ -1,6 +1,6 @@
     // --- 1. Supabase Credentials & Engine Setup ---
-    var SUPABASE_PROJECT_URL = 'https://aprsaswfajzepckzvyoe.supabase.co';
-    var SUPABASE_PUBLISHABLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFwcnNhc3dmYWp6ZXBja3p2eW9lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NzA4MjEsImV4cCI6MjEwMzM0NjgyMX0.VMgdl6TYNN_ouMSMahvQr_ku_DuJ6qIk5wSxsWYPb20';
+    var SUPABASE_PROJECT_URL = 'https://bfexmmzgxoifdmhmjgox.supabase.co';
+    var SUPABASE_PUBLISHABLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmZXhtbXpneG9pZmRtaG1qZ294Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3OTYxMDUsImV4cCI6MjEwNzM3MjEwNX0.1MAug1zQ8PXTuuGUTBDh6yqDjf31I5v9BFNqaEENO3k';
     var supabaseClient = null;
     var realtimeChannel = null;
 
